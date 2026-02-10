@@ -1,6 +1,6 @@
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-import uuid
+from uuid import UUID, uuid4
 from datetime import datetime, timezone
 from psycopg2.extras import Json
 
@@ -11,14 +11,18 @@ def create_event(
     event_type: str,
     occurred_at: datetime,
     user_id: str | None,
+    idempotency_key: str | UUID | None,
     metadata: dict,
-) -> uuid.UUID:
-    """
-    Creates a raw event and persists it to the database.
-    Returns the generated event_id on success.
-    """
+) -> UUID:
+    #Creates a raw event and Returns the generated event_id on success.
+    if idempotency_key:
+        get_idempotency_key = text("""
+            SELECT event_id
+            FROM idempotency_keys
+            WHERE idempotency_key = 'abc-123';
+            """)
     try:
-        event_id = uuid.uuid4()
+        event_id = uuid4()
 
         insert_sql = text("""
             INSERT INTO raw_events (
