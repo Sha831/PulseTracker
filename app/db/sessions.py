@@ -3,6 +3,7 @@ from sqlalchemy.orm import sessionmaker,Session
 from typing import Generator
 
 DATABASE_URL = "postgresql://postgres:postgres123@localhost:5432/pulsetrack"
+#path to db = "C:\Program Files\PostgreSQL\18\bin\psql.exe"
 
 engine = create_engine(
     DATABASE_URL,
