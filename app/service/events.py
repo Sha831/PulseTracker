@@ -14,9 +14,9 @@ def create_event(
     user_id: str | None,
     idempotency_key: str | UUID | None,
     metadata: dict,
-) -> UUID:
-    #Creates a raw event and Returns the generated event_id on success.
-    if idempotency_key:
+) -> UUID:#Creates a raw event and Returns the generated event_id on success.
+    
+    if idempotency_key: #this can be skipped but usefull when more retries/concurrent request only
         lookup_sql = text("""
             SELECT event_id
             FROM idempotency_keys
@@ -91,7 +91,7 @@ def create_event(
     except IntegrityError as e:
         session.rollback()
 
-        # Check if duplicate key(basically concurrent request)
+        #Check if duplicate key(basically concurrent request)
         if getattr(e.orig, "pgcode", None) == "23505" and idempotency_key:
             result = session.execute(
                 lookup_sql,
