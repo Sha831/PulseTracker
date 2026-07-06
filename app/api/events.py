@@ -5,7 +5,9 @@ from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
 from uuid import UUID
 
+
 from app.db.sessions import get_db_session
+from app.auth.dependencies import get_token_payload
 from app.service.events import create_event
 
 router = APIRouter()
@@ -44,10 +46,11 @@ def post_event(
     event: EventIn,
     idempotency_key: Optional[constr(strip_whitespace=True, min_length=1)] = Header(default=None, alias="Idempotency-Key"),
     session: Session = Depends(get_db_session),
+    token_payload: dict = Depends(get_token_payload)
 ):
     event_id = create_event(
         session=session,
-        organization_id=event.organization_id,
+        organization_id=token_payload['sub'],
         event_type=event.event_type,
         occurred_at=event.occurred_at,
         user_id=event.user_id,
