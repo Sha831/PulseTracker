@@ -2,21 +2,29 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from uuid import UUID, uuid4
-from datetime import datetime, timezone
+from datetime import datetime
 from psycopg2.extras import Json
 
+"""
+Event Ingestion Service
+
+Responsibilities:
+- Ingest validated events into the event log.
+- Handle idempotent event creation when an Idempotency-Key is provided.
+- Return the identifier of the ingested event.
+"""
 
 def create_event(
     session: Session,
-    organization_id: str,
+    organization_id: UUID,
     event_type: str,
     occurred_at: datetime,
     user_id: str | None,
     idempotency_key: str | UUID | None,
     metadata: dict,
-) -> UUID:#Creates a raw event and Returns the generated event_id on success.
+) -> UUID:
     
-    if idempotency_key: #this can be skipped but usefull when more retries/concurrent request only
+    if idempotency_key:
         lookup_sql = text("""
             SELECT event_id
             FROM idempotency_keys
@@ -91,7 +99,7 @@ def create_event(
     except IntegrityError as e:
         session.rollback()
 
-        #Check if duplicate key(basically concurrent request)
+        # Another request already processed this idempotency key
         if getattr(e.orig, "pgcode", None) == "23505" and idempotency_key:
             result = session.execute(
                 lookup_sql,
@@ -101,7 +109,7 @@ def create_event(
             if row:
                 return row.event_id
 
-        # Not duplicate key → real failure(other posible senario where IntegrityError can occur)
+        # handle other Unexpected database integrity error.
         raise
 
     except Exception:

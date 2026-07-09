@@ -2,8 +2,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker,Session
 from typing import Generator
 
-DATABASE_URL = "postgresql://postgres:postgres123@localhost:5432/pulsetrack"
-#path to db = "C:\Program Files\PostgreSQL\18\bin\psql.exe"
+from app.core.config import DATABASE_URL
+"""
+Database Sessions
+
+Responsibilities:
+- create db session 
+"""
 
 engine = create_engine(
     DATABASE_URL,
