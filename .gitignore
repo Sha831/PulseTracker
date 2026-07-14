@@ -4,13 +4,15 @@ __pycache__/
 build/
 dist/
 wheels/
-*.egg-info
+*.egg-info/
 
 # Virtual environments
-.venv
+.venv/
+.pulse_tracker_venv/
 
-#vscode settings
-.vscode
+# VS Code settings
+.vscode/
 
-#environment variables
+# Environment variables
 .env
+!.env.example

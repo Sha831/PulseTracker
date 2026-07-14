@@ -1,7 +1,6 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker,Session
 import uuid
-import secrets
 
 
 # since we dont have any api's to register an organization for now
@@ -25,7 +24,7 @@ def generate_organization_data(org_name:str) -> dict:
     return {
     "org_name": org_name,
     "organization_id": uuid.uuid4(),
-    "api_key": f"pt_live_{secrets.token_hex(16)}",
+    "api_key": f"__hghjgbvhv__",#add your secret key 
         }
 
 
