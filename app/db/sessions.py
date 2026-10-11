@@ -7,7 +7,7 @@ from app.core.config import DATABASE_URL
 Database Sessions
 
 Responsibilities:
-- create db session 
+- create postgres db session 
 """
 
 engine = create_engine(

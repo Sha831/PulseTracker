@@ -1,11 +1,11 @@
-from pydantic import BaseModel, constr, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, StringConstraints
 from datetime import datetime, timezone, timedelta
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Annotated
 from uuid import UUID
 
 
 class EventIn(BaseModel):
-    event_type: constr(strip_whitespace=True, min_length=1)
+    event_type: Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True, min_length=1)]
     occurred_at: datetime
     user_id: Optional[str] = None
     metadata: Dict[str,Any] = Field(default_factory=dict)
@@ -29,3 +29,4 @@ class EventIn(BaseModel):
 
 class EventAccepted(BaseModel):
     event_id: UUID
+    recieved_at: datetime

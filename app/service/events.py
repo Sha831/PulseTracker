@@ -2,7 +2,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from uuid import UUID, uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 from psycopg2.extras import Json
 
 """
@@ -22,8 +22,10 @@ def create_event(
     user_id: str | None,
     idempotency_key: str | UUID | None,
     metadata: dict,
-) -> UUID:
+) -> tuple[UUID, datetime]:
     
+    received_at = datetime.now(timezone.utc)
+
     if idempotency_key:
         lookup_sql = text("""
             SELECT event_id
@@ -39,7 +41,7 @@ def create_event(
         row = result.fetchone()
 
         if row is not None:
-            return row.event_id
+            return row.event_id, row.received_at
 
     try:
         event_id = uuid4()
@@ -51,14 +53,16 @@ def create_event(
                 event_type,
                 occurred_at,
                 user_id,
-                metadata
+                metadata,
+                received_at
             ) VALUES (
                 :event_id,
                 :organization_id,
                 :event_type,
                 :occurred_at,
                 :user_id,
-                :metadata
+                :metadata,
+                :received_at
             )
         """)
 
@@ -71,6 +75,7 @@ def create_event(
                 "occurred_at": occurred_at,
                 "user_id": user_id,
                 "metadata": Json(metadata),
+                "received_at": received_at,
             }
         )
 
@@ -78,10 +83,12 @@ def create_event(
             insert_key_sql = text("""
                 INSERT INTO idempotency_keys (
                     idempotency_key,
-                    event_id
+                    event_id,
+                    received_at
                 ) VALUES (
                     :idempotency_key,
-                    :event_id
+                    :event_id,
+                    :received_at
                 )
             """)
 
@@ -90,11 +97,12 @@ def create_event(
                 {
                     "idempotency_key": idempotency_key,
                     "event_id": event_id,
+                    "received_at": received_at,
                 }
             )
 
         session.commit()
-        return event_id
+        return event_id , received_at
 
     except IntegrityError as e:
         session.rollback()
@@ -107,7 +115,7 @@ def create_event(
             )
             row = result.fetchone()
             if row:
-                return row.event_id
+                return row.event_id, row.received_at
 
         # handle other Unexpected database integrity error.
         raise

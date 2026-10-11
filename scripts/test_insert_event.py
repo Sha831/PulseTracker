@@ -1,8 +1,13 @@
 from sqlalchemy import text
-from db.sessions import get_db_session
+from app.db.sessions import get_db_session
 import uuid
 from datetime import datetime, timezone
 from psycopg2.extras import Json
+
+"""
+Disclamer : 
+-Please dont refer these test scripts for general testing as these were made during specific cases/time during designing backend
+"""
 
 def insert_event():
     gen = get_db_session()

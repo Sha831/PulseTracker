@@ -1,11 +1,11 @@
-from pydantic import BaseModel,constr
+from pydantic import BaseModel, StringConstraints
 from uuid import UUID
-from typing import Literal
+from typing import Literal, Annotated
 
 
 class TokenRequest(BaseModel):
     organization_id : UUID
-    api_key : constr(strip_whitespace=True, min_length=1)
+    api_key : Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 class TokenResponse(BaseModel):

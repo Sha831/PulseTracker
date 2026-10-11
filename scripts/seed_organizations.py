@@ -2,7 +2,10 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker,Session
 import uuid
 
-
+"""
+Disclamer : 
+-Please dont refer these test scripts for general testing as these were made during specific cases/time during designing backend
+"""
 # since we dont have any api's to register an organization for now
 # Test script to manually add organization details to database 
 DATABASE_URL = "postgres____xyz___5432/pulsetrack"   # add the db url to actual db
