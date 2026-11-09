@@ -12,9 +12,11 @@ from app.core.config import REDIS_URL
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    
+    redis_url = getattr(app.state, "redis_url", REDIS_URL)
 
     app.state.redis_client = Redis.from_url(
-        url=REDIS_URL,
+        url=redis_url,
         decode_responses=True
     )
 
