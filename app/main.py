@@ -10,29 +10,36 @@ from app.scheduler.aggregate_job import aggregate_job
 from app.core.config import REDIS_URL
 
 
-scheduler = BackgroundScheduler()
-scheduler.add_job(aggregate_job, trigger='cron',minute=0)
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    app.state.redis_client = Redis.from_url(url= REDIS_URL,
-                                            decode_responses = True)
-    scheduler.start()
+    app.state.redis_client = Redis.from_url(
+        url=REDIS_URL,
+        decode_responses=True
+    )
+
+    scheduler = None
+
+    if app.state.start_scheduler:
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(
+            aggregate_job,
+            trigger="cron",
+            minute=0
+        )
+        scheduler.start()
 
     yield
 
-    scheduler.shutdown()
+    if scheduler and scheduler.running:
+        scheduler.shutdown()
+
     app.state.redis_client.close()
-    
 
 
 app = FastAPI(lifespan=lifespan)
+app.state.start_scheduler = True
+
 app.include_router(events_router)
 app.include_router(auth_router)
 app.include_router(analytics_router)
-
-
-
-
-
