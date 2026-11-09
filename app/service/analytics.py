@@ -17,34 +17,62 @@ Responsibilities:
 -Response preparation: Structures the query results into the required API response format and calculates the total event count.
 """
 
-def aggregate_previous_hr(session:Session):
+
+def aggregate_previous_hr(session: Session):
 
     aggregate_event_sql = text("""
-                INSERT INTO hourly_event_analytics
-                    (organization_id, bucket_start, event_type, event_count)
-                SELECT
-                    re.organization_id,
-                    DATE_TRUNC('hour', re.occurred_at),
-                    re.event_type,
-                    COUNT(*)
-                FROM raw_events AS re
-                WHERE re.received_at >= DATE_TRUNC('hour', NOW() - INTERVAL '1 hour')
-                AND re.received_at < DATE_TRUNC('hour', NOW())
-                GROUP BY
-                    re.organization_id,
-                    re.event_type,
-                    DATE_TRUNC('hour', re.occurred_at)
-                ON CONFLICT (organization_id, bucket_start, event_type)
-                DO UPDATE
-                SET event_count = EXCLUDED.event_count;
-            """)
+        WITH affected_buckets AS (
+            SELECT DISTINCT
+                organization_id,
+                DATE_TRUNC('hour', occurred_at) AS bucket_start,
+                event_type
+            FROM raw_events
+            WHERE received_at >= DATE_TRUNC('hour', NOW() - INTERVAL '1 hour')
+              AND received_at < DATE_TRUNC('hour', NOW())
+        ),
 
-    try :
+        # update query to avoide rewriting of analytics this recalculates the bucket for late arriving events unlike previous which used to over-write previous with late arriving
+        recalculated_counts AS (
+            SELECT
+                ab.organization_id,
+                ab.bucket_start,
+                ab.event_type,
+                COUNT(re.event_id) AS event_count
+            FROM affected_buckets AS ab
+            JOIN raw_events AS re
+                ON re.organization_id = ab.organization_id
+                AND re.event_type = ab.event_type
+                AND re.occurred_at >= ab.bucket_start
+                AND re.occurred_at < ab.bucket_start + INTERVAL '1 hour'
+            GROUP BY
+                ab.organization_id,
+                ab.bucket_start,
+                ab.event_type
+        )
 
+        INSERT INTO hourly_event_analytics (
+            organization_id,
+            bucket_start,
+            event_type,
+            event_count
+        )
+        SELECT
+            organization_id,
+            bucket_start,
+            event_type,
+            event_count
+        FROM recalculated_counts
+
+        ON CONFLICT (organization_id, bucket_start, event_type)
+        DO UPDATE
+        SET event_count = EXCLUDED.event_count;
+    """)
+
+    try:
         session.execute(aggregate_event_sql)
         session.commit()
 
-    except Exception as e:
+    except Exception:
         session.rollback()
         raise
 
