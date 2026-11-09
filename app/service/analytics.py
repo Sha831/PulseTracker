@@ -31,7 +31,6 @@ def aggregate_previous_hr(session: Session):
               AND received_at < DATE_TRUNC('hour', NOW())
         ),
 
-        # update query to avoide rewriting of analytics this recalculates the bucket for late arriving events unlike previous which used to over-write previous with late arriving
         recalculated_counts AS (
             SELECT
                 ab.organization_id,
