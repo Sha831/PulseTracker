@@ -12,6 +12,10 @@ class EventIn(BaseModel):
 
     @field_validator("occurred_at")
     def occurred_at_cannot_be_future(cls, value: datetime):
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("occurred_at must be timezone-aware")
+
+        value = value.astimezone(timezone.utc)
         now = datetime.now(timezone.utc)
 
         if value.tzinfo is None:

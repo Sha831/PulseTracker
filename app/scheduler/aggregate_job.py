@@ -1,4 +1,4 @@
-from app.db.sessions import SessionLocal
+from app.db.sessions_postgres import SessionLocal
 from app.service.analytics import aggregate_previous_hr
 
 """

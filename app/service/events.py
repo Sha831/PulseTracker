@@ -26,24 +26,28 @@ def create_event(
     
     received_at = datetime.now(timezone.utc)
 
-    if idempotency_key:
-        lookup_sql = text("""
-            SELECT event_id
-            FROM idempotency_keys
-            WHERE idempotency_key = :idempotency_key
-        """)
-
-        result = session.execute(
-            lookup_sql,
-            {"idempotency_key": idempotency_key}
-        )
-
-        row = result.fetchone()
-
-        if row is not None:
-            return row.event_id, row.received_at
-
     try:
+
+        if idempotency_key:
+                lookup_sql = text("""
+                    SELECT event_id, received_at
+                    FROM idempotency_keys
+                    WHERE organization_id = :organization_id
+                    AND idempotency_key = :idempotency_key
+                """)
+        
+                result = session.execute(
+                    lookup_sql,
+                    {"idempotency_key": idempotency_key,
+                     "organization_id": organization_id,
+                    }
+                )
+                row = result.fetchone()
+        
+                if row is not None:
+                    return row.event_id, row.received_at
+
+                
         event_id = uuid4()
 
         insert_event_sql = text("""
@@ -82,19 +86,17 @@ def create_event(
         if idempotency_key:
             insert_key_sql = text("""
                 INSERT INTO idempotency_keys (
-                    idempotency_key,
-                    event_id,
-                    received_at
-                ) VALUES (
-                    :idempotency_key,
-                    :event_id,
-                    :received_at
+                    organization_id, idempotency_key, event_id, received_at
+                )
+                VALUES (
+                    :organization_id, :idempotency_key, :event_id, :received_at
                 )
             """)
 
             session.execute(
                 insert_key_sql,
                 {
+                    "organization_id": organization_id,
                     "idempotency_key": idempotency_key,
                     "event_id": event_id,
                     "received_at": received_at,
@@ -111,7 +113,9 @@ def create_event(
         if getattr(e.orig, "pgcode", None) == "23505" and idempotency_key:
             result = session.execute(
                 lookup_sql,
-                {"idempotency_key": idempotency_key}
+                {"idempotency_key": idempotency_key,
+                 "organization_id": organization_id,
+                }
             )
             row = result.fetchone()
             if row:

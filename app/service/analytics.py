@@ -3,6 +3,10 @@ from sqlalchemy import text
 from datetime import datetime
 from uuid import UUID
 from collections import defaultdict
+from redis import Redis
+from typing import Any
+
+from app.service.cache import cache_analytics, get_cached_analytics, build_analytics_cache_key
 
 """
 Analytics Services
@@ -45,7 +49,12 @@ def aggregate_previous_hr(session:Session):
         raise
 
 
-def get_analytics_result(session:Session, from_:datetime, to_:datetime, event_type:str|None, org_id: UUID) -> tuple[dict,int]:
+def get_analytics_result(session:Session, redis_connection:Redis, from_:datetime, to_:datetime, event_type:str|None, org_id: UUID) -> dict[str,Any]:
+
+    cache_key = build_analytics_cache_key(from_=from_, to_=to_, event_type=event_type, org_id=org_id)
+    cached_result = get_cached_analytics(client=redis_connection,cache_key=cache_key)
+    if cached_result is not None:
+        return cached_result
 
     get_analytics_data = text("""
                                 SELECT
@@ -79,14 +88,17 @@ def get_analytics_result(session:Session, from_:datetime, to_:datetime, event_ty
     total_event_count = 0
 
     for date, event_type, event_count in rows:
-        day = date.date()
-        time = date.time()
+        day = date.date().isoformat()
+        time = date.time().isoformat()
 
         response_result[day][time][event_type] = event_count
-
         total_event_count+=event_count
 
-    return response_result, total_event_count
+    response = {'analytics':response_result, 'event_count':total_event_count}
+    
+    cache_analytics(redis_connection,cache_key=cache_key,cache_analytics=response)
+    
+    return response
 
 
 

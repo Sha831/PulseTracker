@@ -3,7 +3,7 @@ from pydantic import StringConstraints
 from typing import Annotated, Optional
 from sqlalchemy.orm import Session
 
-from app.db.sessions import get_db_session
+from app.db.sessions_postgres import get_db_session
 from app.auth.dependencies import get_token_payload
 from app.service.events import create_event 
 from app.schemas.events import EventAccepted, EventIn

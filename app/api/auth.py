@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.db.sessions import get_db_session
+from app.db.sessions_postgres import get_db_session
 from app.auth.services import authenticate_organization
 from app.schemas.auth import TokenRequest, TokenResponse
 

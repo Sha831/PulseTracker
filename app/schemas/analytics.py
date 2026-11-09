@@ -1,6 +1,6 @@
 from pydantic import BaseModel, field_validator, model_validator, StringConstraints
 from datetime import datetime, timezone, timedelta
-from typing import Optional, Annotated
+from typing import Optional, Annotated, Any
 
 
 class GetAnalytics(BaseModel):
@@ -14,10 +14,12 @@ class GetAnalytics(BaseModel):
         now = datetime.now(timezone.utc)
         allowed = now - timedelta(days=60)
         oldest_allowed = allowed.replace(hour=0, minute=0, second=0, microsecond=0)
-        normalized_value = value.replace(minute=0, second=0, microsecond=0)
 
-        if normalized_value.tzinfo is None:
+        if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("from_ must be timezone-aware")
+
+        utc_value = value.astimezone(timezone.utc)
+        normalized_value = utc_value.replace(minute=0, second=0, microsecond=0)
         
         if normalized_value < oldest_allowed:
             raise ValueError(f"Analytics are available for last 60 days only. Please enter a date&time from {oldest_allowed}")
@@ -29,10 +31,12 @@ class GetAnalytics(BaseModel):
     def analytics_range_max(cls, value: datetime):
         now = datetime.now(timezone.utc)
         newest_allowed = now.replace(minute=0, second=0, microsecond=0) - timedelta(hours=1)
-        normalized_value = value.replace(minute=0, second=0, microsecond=0)
 
-        if normalized_value.tzinfo is None:
+        if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("to_ must be timezone-aware")
+        
+        utc_value = value.astimezone(timezone.utc)
+        normalized_value = utc_value.replace(minute=0, second=0, microsecond=0)
         
         if normalized_value > newest_allowed:
             raise ValueError(f"Analytics are available only up to the latest completed hour. Please enter a date&time upto {newest_allowed}")
@@ -50,5 +54,4 @@ class GetAnalytics(BaseModel):
 
 
 class AnalyticsResponse(BaseModel):
-    analytics_result : dict
-    total_event_count:int
+    analytics_result : dict[str, Any]
