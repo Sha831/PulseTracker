@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker,Session
+from sqlalchemy.orm import sessionmaker, Session
 from typing import Generator
 
 from app.core.config import DATABASE_URL
@@ -10,10 +10,14 @@ Responsibilities:
 - create postgres db session 
 """
 
-engine = create_engine(
-    DATABASE_URL,
-    echo=True
-)
+def create_db_engine(database_url: str):
+    return create_engine(
+        database_url,
+        echo=False
+    )
+
+
+engine = create_db_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(
     bind=engine,
@@ -21,7 +25,8 @@ SessionLocal = sessionmaker(
     autocommit=False
 )
 
-def get_db_session() -> Generator[Session,None,None]:
+
+def get_db_session() -> Generator[Session, None, None]:
     session = SessionLocal()
     try:
         yield session
